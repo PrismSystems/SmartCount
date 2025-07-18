@@ -58,7 +58,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         <div className="w-full h-screen bg-gray-100 flex items-center justify-center p-4">
             <div className="w-full max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg">
                 <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">Smart Count</h1>
-                <p className="text-lg text-center text-gray-500 mb-8">Your takeoff, accelerated &#x1F680;.</p>
+                <p className="text-lg text-center text-gray-500 mb-8">Your takeoff &#x1F680;, accelerated.</p>
                 
                 {error && <p className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-sm text-center">{error}</p>}
                 {message && <p className="bg-green-100 text-green-700 p-3 rounded-lg mb-4 text-sm text-center">{message}</p>}
