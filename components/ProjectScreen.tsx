@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import type { Project } from '../types';
 import { UploadIcon, TrashIcon } from './icons';
-import {App_Tag_Line} from "@/constants.ts";
+import {App_Name, App_Tag_Line} from "@/constants.ts";
 
 interface ProjectScreenProps {
     projects: Project[];
@@ -68,7 +68,7 @@ export const ProjectScreen: React.FC<ProjectScreenProps> = ({ projects, onCreate
     return (
         <div className="w-full h-full bg-gray-100 flex items-center justify-center p-8">
             <div className="w-full max-w-4xl mx-auto">
-                <h1 className="text-4xl font-bold text-center text-gray-800 mb-2">Smart Count</h1>
+                <h1 className="text-4xl font-bold text-center text-gray-800 mb-2">{App_Name}</h1>
                 <p className="text-lg text-center text-gray-500 mb-12">{App_Tag_Line}</p>
 
                 <div className="grid md:grid-cols-2 gap-12">

@@ -6,7 +6,7 @@ import { SymbolCard } from './SymbolCard';
 import { AddIcon, ExportIcon, ProjectsIcon, ChevronDownIcon, TrashIcon, EyeIcon, EyeOffIcon, EditIcon, TableIcon, RulerIcon, PdfFileIcon, LoadingIcon, PaintBrushIcon, TextIcon, TextOffIcon, PsuIcon, RenumberIcon, SaveIcon, WarningIcon } from './icons';
 import { measurementService } from '../services/measurementService';
 import { SymbolsAndDisciplinesManager } from './SymbolsAndDisciplinesManager';
-import {Version_Number} from "@/constants.ts";
+import {App_Name, Version_Number} from "@/constants.ts";
 
 interface SidebarProps {
     projects: Project[];
@@ -1201,7 +1201,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
             </div>
             
             <div className="mt-auto pt-4 border-t border-gray-200 text-center">
-                <p className="text-xs text-gray-400">Smart Count v{Version_Number}</p>
+                <p className="text-xs text-gray-400">{App_Name} v{Version_Number}</p>
             </div>
         </aside>
     );
