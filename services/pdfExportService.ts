@@ -101,7 +101,25 @@ export const exportDaliPdf = async (project: Project, pdfId: string, pageNumber:
     const { width, height } = page.getSize();
     const rotation = page.getRotation().angle;
 
-    const transformPoint = (p: {x: number, y: number}): {x: number, y: number} => ({ x: p.x, y: height - p.y });
+    const transformPoint = (p: {x: number, y: number}): {x: number, y: number} => {
+        let x = p.x;
+        let y = p.y;
+        
+        // First, flip Y-axis (canvas to PDF coordinate system)
+        y = height - y;
+        
+        // Then apply rotation transformation
+        switch (rotation) {
+            case 90:
+                return { x: y, y: width - x };
+            case 180:
+                return { x: width - x, y: height - y };
+            case 270:
+                return { x: height - y, y: x };
+            default:
+                return { x, y };
+        }
+    };
 
     const daliDevicesOnPage = (project.daliDevices || []).filter(d => d.pdfId === pdfId && d.page === pageNumber);
     const daliNetworks = new Map((project.daliNetworks || []).map(n => [n.id, n]));
