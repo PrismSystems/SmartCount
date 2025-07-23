@@ -19,9 +19,10 @@ export const ProjectScreen: React.FC<ProjectScreenProps> = ({ projects, onCreate
     const [newProjectLevels, setNewProjectLevels] = useState<string[]>([]);
     const [templateId, setTemplateId] = useState<string | null>(null);
     const [error, setError] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
     const restoreInputRef = useRef<HTMLInputElement>(null);
 
-    const handleCreate = (e: React.FormEvent) => {
+    const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newProjectName.trim()) {
             setError('Please enter a project name.');
@@ -31,16 +32,25 @@ export const ProjectScreen: React.FC<ProjectScreenProps> = ({ projects, onCreate
             setError('Please select at least one PDF file.');
             return;
         }
-        const filesWithLevels = newProjectFiles.map((file, index) => ({
-            file,
-            level: newProjectLevels[index] || ''
-        }));
-        onCreate(newProjectName.trim(), filesWithLevels, templateId);
-        setNewProjectName('');
-        setNewProjectFiles([]);
-        setNewProjectLevels([]);
-        setTemplateId(null);
+        
+        setIsCreating(true);
         setError('');
+        
+        try {
+            const filesWithLevels = newProjectFiles.map((file, index) => ({
+                file,
+                level: newProjectLevels[index] || ''
+            }));
+            await onCreate(newProjectName.trim(), filesWithLevels, templateId);
+            setNewProjectName('');
+            setNewProjectFiles([]);
+            setNewProjectLevels([]);
+            setTemplateId(null);
+        } catch (error) {
+            setError('Failed to create project. Please try again.');
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,8 +141,12 @@ export const ProjectScreen: React.FC<ProjectScreenProps> = ({ projects, onCreate
                                     ))}
                                 </select>
                             </div>
-                            <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold text-lg hover:bg-blue-700 transition-all shadow-md">
-                                Start Project
+                            <button 
+                                type="submit" 
+                                disabled={isCreating}
+                                className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold text-lg hover:bg-blue-700 transition-all shadow-md disabled:bg-gray-400"
+                            >
+                                {isCreating ? 'Creating Project...' : 'Create Project'}
                             </button>
                         </form>
                     </div>

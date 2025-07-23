@@ -88,6 +88,29 @@ const App: React.FC = () => {
     const [undoStack, setUndoStack] = useState<Project[]>([]);
     const [redoStack, setRedoStack] = useState<Project[]>([]);
 
+    // Add error handling state and methods
+    const [apiError, setApiError] = useState<string | null>(null);
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+        
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+    const handleApiError = (error: Error) => {
+        console.error('API Error:', error);
+        setApiError(error.message);
+        setTimeout(() => setApiError(null), 5000); // Clear after 5 seconds
+    };
+
     const activeProject = useMemo(() => projects.find(p => p.id === activeProjectId), [projects, activeProjectId]);
     const activePdfMetadata = useMemo(() => activeProject?.pdfs.find(p => p.id === activePdfId), [activeProject, activePdfId]);
 
@@ -199,42 +222,27 @@ const App: React.FC = () => {
 
     // Fetch PDF data from IndexedDB when active PDF changes
     useEffect(() => {
-        if (activePdfId) {
-            let isCancelled = false;
-            setIsLoading(true);
-            setError(null);
-            setActivePdfData(null);
+        const loadPdfData = async () => {
+            if (!activePdfId || !activeProject) {
+                setActivePdfData(null);
+                return;
+            }
 
-            projectService.getPdfData(activePdfId)
-                .then(data => {
-                    if (!isCancelled) {
-                        if (data) {
-                            setActivePdfData(data);
-                        } else {
-                            setError(`Could not load PDF data for ${activePdfMetadata?.name || 'the selected document'}. It may be missing from storage.`);
-                        }
-                    }
-                })
-                .catch(err => {
-                    if (!isCancelled) {
-                        console.error("Failed to fetch PDF data:", err);
-                        setError("An error occurred while loading the PDF.");
-                    }
-                })
-                .finally(() => {
-                    if (!isCancelled) {
-                        setIsLoading(false);
-                    }
-                });
+            try {
+                setIsLoading(true);
+                const pdfData = await projectService.getPdfData(activePdfId);
+                setActivePdfData(`data:application/pdf;base64,${pdfData}`);
+            } catch (error) {
+                console.error('Failed to load PDF data:', error);
+                handleApiError(error as Error);
+                setActivePdfData(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-            return () => {
-                isCancelled = true;
-            };
-        } else {
-            setActivePdfData(null);
-        }
-    }, [activePdfId, activePdfMetadata?.name]);
-
+        loadPdfData();
+    }, [activePdfId, activeProject]);
 
     useEffect(() => {
         if (activeProject && currentUser) {
@@ -242,9 +250,15 @@ const App: React.FC = () => {
         }
     }, [activeProject, currentUser]);
 
-    const handleLoginSuccess = (email: string) => {
-        authService.saveCurrentUser(email);
-        setCurrentUser(email);
+    const handleLoginSuccess = async (email: string) => {
+        try {
+            setCurrentUser(email);
+            // Load projects after login
+            const userProjects = await projectService.getProjects(email);
+            setProjects(userProjects);
+        } catch (error) {
+            handleApiError(error as Error);
+        }
     };
 
     const handleLogout = () => {
@@ -254,12 +268,20 @@ const App: React.FC = () => {
 
     const handleCreateProject = async (name: string, filesWithLevels: { file: File, level: string }[], templateId: string | null) => {
         if (!currentUser) return;
-        const newProject = await projectService.createProject(currentUser, name, filesWithLevels, templateId);
-        setProjects(prev => [...prev, newProject]);
-        setActiveProjectId(newProject.id);
-        setActivePdfId(newProject.pdfs[0]?.id || null);
-        setUndoStack([]);
-        setRedoStack([]);
+        
+        try {
+            setIsLoading(true);
+            const newProject = await projectService.createProject(currentUser, name, filesWithLevels, templateId);
+            setProjects(prev => [...prev, newProject]);
+            setActiveProjectId(newProject.id);
+            setActivePdfId(newProject.pdfs[0]?.id || null);
+            setUndoStack([]);
+            setRedoStack([]);
+        } catch (error) {
+            handleApiError(error as Error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleLoadProject = (id: string) => {

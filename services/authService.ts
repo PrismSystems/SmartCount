@@ -1,79 +1,81 @@
-const AUTH_STORAGE_KEY = 'smart-count-users';
-const SESSION_STORAGE_KEY = 'smart-count-session';
+import { apiService } from './apiService';
 
-interface UserStore {
-    [email: string]: {
-        password: string; // Stored in plaintext, NOT FOR PRODUCTION USE
-    };
+interface User {
+    id: string;
+    email: string;
 }
 
-const getUsers = (): UserStore => {
-    try {
-        const usersJson = localStorage.getItem(AUTH_STORAGE_KEY);
-        return usersJson ? JSON.parse(usersJson) : {};
-    } catch (error) {
-        console.error("Failed to load users from localStorage", error);
-        return {};
+class AuthService {
+    private currentUser: User | null = null;
+
+    constructor() {
+        this.loadCurrentUser();
     }
-};
 
-const saveUsers = (users: UserStore): void => {
-    try {
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(users));
-    } catch (error) {
-        console.error("Failed to save users to localStorage", error);
-    }
-};
+    private loadCurrentUser() {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            this.currentUser = null;
+            return;
+        }
 
-export const authService = {
-    async register(email: string, password: string): Promise<{ success: boolean; message: string }> {
-        const users = getUsers();
-        if (!email || !password) {
-            return { success: false, message: 'Email and password cannot be empty.' };
-        }
-        if (users[email]) {
-            return { success: false, message: 'User with this email already exists.' };
-        }
-        users[email] = { password };
-        saveUsers(users);
-        return { success: true, message: 'Registration successful. Please log in.' };
-    },
-
-    async login(email: string, password: string): Promise<{ success: boolean; message: string }> {
-        const users = getUsers();
-        const user = users[email];
-        if (!user) {
-            return { success: false, message: 'User not found.' };
-        }
-        if (user.password !== password) {
-            return { success: false, message: 'Incorrect password.' };
-        }
-        this.saveCurrentUser(email);
-        return { success: true, message: 'Login successful.' };
-    },
-
-    logout(): void {
         try {
-            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            // Check if token is expired
+            if (payload.exp * 1000 < Date.now()) {
+                this.logout();
+                return;
+            }
+            this.currentUser = { id: payload.userId, email: payload.email };
         } catch (error) {
-            console.error("Failed to clear session storage", error);
+            console.error('Invalid token:', error);
+            this.logout();
         }
-    },
+    }
+
+    async login(email: string, password: string): Promise<boolean> {
+        try {
+            const response = await apiService.login(email, password);
+            this.currentUser = response.user;
+            return true;
+        } catch (error) {
+            console.error('Login failed:', error);
+            return false;
+        }
+    }
+
+    async register(email: string, password: string): Promise<boolean> {
+        try {
+            const response = await apiService.register(email, password);
+            this.currentUser = response.user;
+            return true;
+        } catch (error) {
+            console.error('Registration failed:', error);
+            return false;
+        }
+    }
 
     getCurrentUser(): string | null {
-        try {
-            return sessionStorage.getItem(SESSION_STORAGE_KEY);
-        } catch (error) {
-            console.error("Failed to get user from session storage", error);
-            return null;
-        }
-    },
+        return this.currentUser?.email || null;
+    }
+
+    getCurrentUserId(): string | null {
+        return this.currentUser?.id || null;
+    }
 
     saveCurrentUser(email: string): void {
-        try {
-            sessionStorage.setItem(SESSION_STORAGE_KEY, email);
-        } catch (error) {
-            console.error("Failed to save user to session storage", error);
-        }
-    },
-};
+        // This method is kept for compatibility but user is now saved via token
+        console.log('User saved via token:', email);
+    }
+
+    logout(): void {
+        this.currentUser = null;
+        apiService.clearToken();
+    }
+
+    isAuthenticated(): boolean {
+        return this.currentUser !== null;
+    }
+}
+
+export const authService = new AuthService();
