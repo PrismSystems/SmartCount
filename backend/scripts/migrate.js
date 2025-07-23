@@ -1,9 +1,14 @@
+require('dotenv').config();
+
 const fs = require('fs');
 const path = require('path');
 const pool = require('../config/database');
 
 async function runMigration() {
     try {
+        // Debug: Check if DATABASE_URL is loaded
+        console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
+        
         const schemaPath = path.join(__dirname, '../database/schema.sql');
         const schema = fs.readFileSync(schemaPath, 'utf8');
         
